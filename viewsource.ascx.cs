@@ -8,6 +8,8 @@ namespace Dnn.Module.ModuleCreator
     using System.Web.UI.WebControls;
 
     using DotNetNuke.Abstractions;
+    using DotNetNuke.Abstractions.Application;
+    using DotNetNuke.Abstractions.Portals;
     using DotNetNuke.Common;
     using DotNetNuke.Common.Utilities;
     using DotNetNuke.Entities.Controllers;
@@ -22,15 +24,28 @@ namespace Dnn.Module.ModuleCreator
     using DotNetNuke.UI.Skins.Controls;
     using Microsoft.Extensions.DependencyInjection;
 
+    /// <summary>
+    /// Codebehind implementation for the ViewSource view.
+    /// </summary>
     public partial class ViewSource : PortalModuleBase
     {
-        private readonly INavigationManager _navigationManager;
+        private readonly INavigationManager navigationManager;
+        private readonly IApplicationStatusInfo applicationStatusInfo;
+        private readonly IPortalSettings portalSettings;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ViewSource"/> class.
+        /// </summary>
         public ViewSource()
         {
-            this._navigationManager = this.DependencyProvider.GetRequiredService<INavigationManager>();
+            this.navigationManager = this.DependencyProvider.GetRequiredService<INavigationManager>();
+            this.applicationStatusInfo = this.DependencyProvider.GetRequiredService<IApplicationStatusInfo>();
+            this.portalSettings = this.DependencyProvider.GetRequiredService<IPortalSettings>();
         }
 
+        /// <summary>
+        /// Gets the module control id.
+        /// </summary>
         protected int ModuleControlId
         {
             get
@@ -49,10 +64,11 @@ namespace Dnn.Module.ModuleCreator
         {
             get
             {
-                return UrlUtils.ValidReturnUrl(this.Request.Params["ReturnURL"]) ?? this._navigationManager.NavigateURL();
+                return UrlUtils.ValidReturnUrl(this.Request.Params["ReturnURL"]) ?? this.navigationManager.NavigateURL();
             }
         }
 
+        /// <inheritdoc/>
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
@@ -60,7 +76,7 @@ namespace Dnn.Module.ModuleCreator
 
             this.cboFile.SelectedIndexChanged += this.OnFileIndexChanged;
             this.optLanguage.SelectedIndexChanged += this.OnLanguageSelectedIndexChanged;
-            this.cboTemplate.SelectedIndexChanged += this.cboTemplate_SelectedIndexChanged;
+            this.cboTemplate.SelectedIndexChanged += this.CboTemplateSelectedIndexChanged;
             this.cmdUpdate.Click += this.OnUpdateClick;
             this.cmdPackage.Click += this.OnPackageClick;
             this.cmdConfigure.Click += this.OnConfigureClick;
@@ -98,17 +114,32 @@ namespace Dnn.Module.ModuleCreator
             }
         }
 
+        /// <summary>
+        /// Fires up when the file selector changed selection.
+        /// </summary>
+        /// <param name="sender">The sender of the event.</param>
+        /// <param name="e">The event arguments.</param>
         protected void OnFileIndexChanged(object sender, EventArgs e)
         {
             this.LoadFile();
         }
 
+        /// <summary>
+        /// Fires up when the language selector changed.
+        /// </summary>
+        /// <param name="sender">The sender of the event.</param>
+        /// <param name="e">The event arguments.</param>
         protected void OnLanguageSelectedIndexChanged(object sender, EventArgs e)
         {
             this.LoadModuleTemplates();
         }
 
-        protected void cboTemplate_SelectedIndexChanged(object sender, EventArgs e)
+        /// <summary>
+        /// Fires up when the selected template changed.
+        /// </summary>
+        /// <param name="sender">The sender of the event.</param>
+        /// <param name="e">The event arguments.</param>
+        protected void CboTemplateSelectedIndexChanged(object sender, EventArgs e)
         {
             this.LoadReadMe();
         }
@@ -165,7 +196,7 @@ namespace Dnn.Module.ModuleCreator
             }
 
             // iterate through files in app_code folder
-            modulePath = Globals.ApplicationMapPath + "\\App_Code\\" + objDesktopModule.FolderName.Replace("/", "\\") + "\\";
+            modulePath = this.applicationStatusInfo.ApplicationMapPath + "\\App_Code\\" + objDesktopModule.FolderName.Replace("/", "\\") + "\\";
             if (Directory.Exists(modulePath))
             {
                 fileList = Directory.GetFiles(modulePath);
@@ -184,9 +215,9 @@ namespace Dnn.Module.ModuleCreator
             }
 
             // select file
-            if (this.cboFile.Items.FindByValue(Globals.ApplicationMapPath + "\\" + controlSrc.Replace("/", "\\")) != null)
+            if (this.cboFile.Items.FindByValue(this.applicationStatusInfo.ApplicationMapPath + "\\" + controlSrc.Replace("/", "\\")) != null)
             {
-                this.cboFile.Items.FindByValue(Globals.ApplicationMapPath + "\\" + controlSrc.Replace("/", "\\")).Selected = true;
+                this.cboFile.Items.FindByValue(this.applicationStatusInfo.ApplicationMapPath + "\\" + controlSrc.Replace("/", "\\")).Selected = true;
             }
         }
 
@@ -358,7 +389,7 @@ namespace Dnn.Module.ModuleCreator
 
             var moduleTemplatePath = this.Server.MapPath(this.ControlPath) + "Templates\\" + this.optLanguage.SelectedValue + "\\" + this.cboTemplate.SelectedValue + "\\";
 
-            EventLogController.Instance.AddLog("Processing Template Folder", moduleTemplatePath, this.PortalSettings, -1, EventLogController.EventLogType.HOST_ALERT);
+            EventLogController.Instance.AddLog("Processing Template Folder", moduleTemplatePath, this.portalSettings, -1, EventLogController.EventLogType.HOST_ALERT);
 
             var controlName = Null.NullString;
             var fileName = Null.NullString;
@@ -446,7 +477,7 @@ namespace Dnn.Module.ModuleCreator
                         tw.Close();
                     }
 
-                    EventLogController.Instance.AddLog("Created File", modulePath + fileName, this.PortalSettings, -1, EventLogController.EventLogType.HOST_ALERT);
+                    EventLogController.Instance.AddLog("Created File", modulePath + fileName, this.portalSettings, -1, EventLogController.EventLogType.HOST_ALERT);
                 }
             }
 
@@ -497,7 +528,7 @@ namespace Dnn.Module.ModuleCreator
             var objModuleDefinition = ModuleDefinitionController.GetModuleDefinitionByID(objModuleControl.ModuleDefID);
             var objDesktopModule = DesktopModuleController.GetDesktopModule(objModuleDefinition.DesktopModuleID, this.PortalId);
             ModuleInfo objModule = ModuleController.Instance.GetModuleByDefinition(-1, "Extensions");
-            this.Response.Redirect(this._navigationManager.NavigateURL(objModule.TabID, "PackageWriter", "rtab=" + this.TabId.ToString(), "packageId=" + objDesktopModule.PackageID.ToString(), "mid=" + objModule.ModuleID.ToString()) + "?popUp=true", true);
+            this.Response.Redirect(this.navigationManager.NavigateURL(objModule.TabID, "PackageWriter", "rtab=" + this.TabId.ToString(), "packageId=" + objDesktopModule.PackageID.ToString(), "mid=" + objModule.ModuleID.ToString()) + "?popUp=true", true);
         }
 
         private void OnConfigureClick(object sender, EventArgs e)
@@ -506,7 +537,7 @@ namespace Dnn.Module.ModuleCreator
             var objModuleDefinition = ModuleDefinitionController.GetModuleDefinitionByID(objModuleControl.ModuleDefID);
             var objDesktopModule = DesktopModuleController.GetDesktopModule(objModuleDefinition.DesktopModuleID, this.PortalId);
             ModuleInfo objModule = ModuleController.Instance.GetModuleByDefinition(-1, "Extensions");
-            this.Response.Redirect(this._navigationManager.NavigateURL(objModule.TabID, "Edit", "mid=" + objModule.ModuleID.ToString(), "PackageID=" + objDesktopModule.PackageID.ToString()) + "?popUp=true", true);
+            this.Response.Redirect(this.navigationManager.NavigateURL(objModule.TabID, "Edit", "mid=" + objModule.ModuleID.ToString(), "PackageID=" + objDesktopModule.PackageID.ToString()) + "?popUp=true", true);
         }
 
         private void OnCreateClick(object sender, EventArgs e)

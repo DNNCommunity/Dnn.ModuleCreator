@@ -4,15 +4,14 @@
 namespace Dnn.Module.ModuleCreator
 {
     using System;
-    using System.Collections.Generic;
     using System.IO;
     using System.Web.UI.WebControls;
 
     using DotNetNuke.Abstractions;
-    using DotNetNuke.Common;
+    using DotNetNuke.Abstractions.Application;
+    using DotNetNuke.Abstractions.Portals;
     using DotNetNuke.Common.Utilities;
     using DotNetNuke.Entities.Content.Taxonomy;
-    using DotNetNuke.Entities.Controllers;
     using DotNetNuke.Entities.Modules;
     using DotNetNuke.Entities.Modules.Definitions;
     using DotNetNuke.Security;
@@ -23,24 +22,38 @@ namespace Dnn.Module.ModuleCreator
     using DotNetNuke.UI.Skins.Controls;
     using Microsoft.Extensions.DependencyInjection;
 
+    /// <summary>
+    /// Codebehind for the CreateModule view.
+    /// </summary>
     public partial class CreateModule : PortalModuleBase
     {
-        private readonly INavigationManager _navigationManager;
+        private readonly INavigationManager navigationManager;
+        private readonly IHostSettingsService hostSettingsService;
+        private readonly IApplicationStatusInfo applicationStatusInfo;
+        private readonly IPortalSettings portalSettings;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CreateModule"/> class.
+        /// </summary>
         public CreateModule()
         {
-            this._navigationManager = this.DependencyProvider.GetRequiredService<INavigationManager>();
+            this.navigationManager = this.DependencyProvider.GetRequiredService<INavigationManager>();
+            this.hostSettingsService = this.DependencyProvider.GetRequiredService<IHostSettingsService>();
+            this.applicationStatusInfo = this.DependencyProvider.GetRequiredService<IApplicationStatusInfo>();
+            this.portalSettings = this.DependencyProvider.GetRequiredService<IPortalSettings>();
         }
 
+        /// <inheritdoc/>
         protected override void OnInit(EventArgs e)
         {
             base.OnInit(e);
 
-            this.optLanguage.SelectedIndexChanged += this.optLanguage_SelectedIndexChanged;
-            this.cboTemplate.SelectedIndexChanged += this.cboTemplate_SelectedIndexChanged;
-            this.cmdCreate.Click += this.cmdCreate_Click;
+            this.optLanguage.SelectedIndexChanged += this.OptLanguageSelectedIndexChanged;
+            this.cboTemplate.SelectedIndexChanged += this.CboTemplateSelectedIndexChanged;
+            this.cmdCreate.Click += this.CmdCreateClick;
         }
 
+        /// <inheritdoc/>
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
@@ -48,10 +61,10 @@ namespace Dnn.Module.ModuleCreator
             {
                 if (!this.Page.IsPostBack)
                 {
-                    Dictionary<string, string> HostSettings = HostController.Instance.GetSettingsDictionary();
-                    if (HostSettings.ContainsKey("Owner"))
+                    var hostSettings = this.hostSettingsService.GetSettingsDictionary();
+                    if (hostSettings.ContainsKey("Owner"))
                     {
-                        this.txtOwner.Text = HostSettings["Owner"];
+                        this.txtOwner.Text = hostSettings["Owner"];
                     }
 
                     this.LoadLanguages();
@@ -66,26 +79,41 @@ namespace Dnn.Module.ModuleCreator
             }
         }
 
-        protected void optLanguage_SelectedIndexChanged(object sender, EventArgs e)
+        /// <summary>
+        /// Fires up when the language is changed.
+        /// </summary>
+        /// <param name="sender">The sender of the event.</param>
+        /// <param name="e">The event arguments.</param>
+        protected void OptLanguageSelectedIndexChanged(object sender, EventArgs e)
         {
             this.LoadModuleTemplates();
         }
 
-        protected void cboTemplate_SelectedIndexChanged(object sender, EventArgs e)
+        /// <summary>
+        /// Fires up when the template selection is changed.
+        /// </summary>
+        /// <param name="sender">The sender of the event.</param>
+        /// <param name="e">The event arguments.</param>
+        protected void CboTemplateSelectedIndexChanged(object sender, EventArgs e)
         {
             this.LoadReadMe();
         }
 
-        protected void cmdCreate_Click(object sender, EventArgs e)
+        /// <summary>
+        /// Fires up when the create button is clicked.
+        /// </summary>
+        /// <param name="sender">The sender of the event.</param>
+        /// <param name="e">The event arguments.</param>
+        protected void CmdCreateClick(object sender, EventArgs e)
         {
             if (this.UserInfo.IsSuperUser)
             {
                 if (!string.IsNullOrEmpty(this.txtOwner.Text) && !string.IsNullOrEmpty(this.txtModule.Text) && this.cboTemplate.SelectedIndex > 0 && !string.IsNullOrEmpty(this.txtControl.Text))
                 {
-                    HostController.Instance.Update("Owner", this.txtOwner.Text, false);
+                    this.hostSettingsService.Update("Owner", this.txtOwner.Text, false);
                     if (this.CreateModuleDefinition())
                     {
-                        this.Response.Redirect(this._navigationManager.NavigateURL(), true);
+                        this.Response.Redirect(this.navigationManager.NavigateURL(), true);
                     }
                 }
                 else
@@ -155,7 +183,7 @@ namespace Dnn.Module.ModuleCreator
 
         private void CreateModuleFolder()
         {
-            var moduleFolderPath = Globals.ApplicationMapPath + "\\DesktopModules\\" + this.GetFolderName().Replace("/", "\\");
+            var moduleFolderPath = this.applicationStatusInfo.ApplicationMapPath + "\\DesktopModules\\" + this.GetFolderName().Replace("/", "\\");
 
             if (!Directory.Exists(moduleFolderPath))
             {
@@ -167,7 +195,7 @@ namespace Dnn.Module.ModuleCreator
         {
             var moduleTemplatePath = this.Server.MapPath(this.ControlPath) + "Templates\\" + this.optLanguage.SelectedValue + "\\" + this.cboTemplate.SelectedValue + "\\";
 
-            EventLogController.Instance.AddLog("Processing Template Folder", moduleTemplatePath, this.PortalSettings, -1, EventLogController.EventLogType.HOST_ALERT);
+            EventLogController.Instance.AddLog("Processing Template Folder", moduleTemplatePath, this.portalSettings, -1, EventLogController.EventLogType.HOST_ALERT);
 
             var controlName = Null.NullString;
             var fileName = Null.NullString;
@@ -249,7 +277,7 @@ namespace Dnn.Module.ModuleCreator
                         tw.Close();
                     }
 
-                    EventLogController.Instance.AddLog("Created File", modulePath + fileName, this.PortalSettings, -1, EventLogController.EventLogType.HOST_ALERT);
+                    EventLogController.Instance.AddLog("Created File", modulePath + fileName, this.portalSettings, -1, EventLogController.EventLogType.HOST_ALERT);
                 }
             }
 
@@ -290,9 +318,9 @@ namespace Dnn.Module.ModuleCreator
         }
 
         /// <summary>
+        /// Creates the module definition.
         /// </summary>
-        /// <remarks>
-        /// </remarks>
+        /// <returns>A value indicating whether the operation succeeded.</returns>
         private bool CreateModuleDefinition()
         {
             try
