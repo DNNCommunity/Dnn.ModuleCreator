@@ -7,19 +7,17 @@ namespace Dnn.Modules.ModuleCreator.Components
     using System;
 
     using DotNetNuke.Entities.Modules;
-    using DotNetNuke.Entities.Modules.Definitions;
-    using DotNetNuke.Services.Upgrade;
 
     /// <summary>
-    ///
+    /// The module business controller is used to implement Dnn module interfaces.
     /// </summary>
     public class BusinessController : IUpgradeable
     {
         /// <summary>
-        ///
+        /// Runs when the module is upgraded.
         /// </summary>
-        /// <param name="version"></param>
-        /// <returns></returns>
+        /// <param name="version">The version of the new package.</param>
+        /// <returns>"Success" or "Failed".</returns>
         public string UpgradeModule(string version)
         {
             try

@@ -32,6 +32,7 @@
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>bin\Dnn.Modules.ModuleCreator.XML</DocumentationFile>
     <LangVersion>7</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -185,9 +186,6 @@
     <Content Include="CreateModule.ascx" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Module.build" />
-  </ItemGroup>
-  <ItemGroup>
     <Content Include="dnn_ModuleCreator.dnn">
       <SubType>Designer</SubType>
     </Content>
@@ -216,6 +214,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <AdditionalFiles Include="stylecop.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <Analyzer Include="packages\StyleCop.Analyzers.1.1.118\analyzers\dotnet\cs\StyleCop.Analyzers.CodeFixes.dll" />
+    <Analyzer Include="packages\StyleCop.Analyzers.1.1.118\analyzers\dotnet\cs\StyleCop.Analyzers.dll" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
