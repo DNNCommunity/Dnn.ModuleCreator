@@ -14,6 +14,7 @@ namespace Dnn.Module.ModuleCreator
     using DotNetNuke.Entities.Content.Taxonomy;
     using DotNetNuke.Entities.Modules;
     using DotNetNuke.Entities.Modules.Definitions;
+    using DotNetNuke.Entities.Portals;
     using DotNetNuke.Security;
     using DotNetNuke.Services.Exceptions;
     using DotNetNuke.Services.Installer.Packages;
@@ -40,7 +41,7 @@ namespace Dnn.Module.ModuleCreator
             this.navigationManager = this.DependencyProvider.GetRequiredService<INavigationManager>();
             this.hostSettingsService = this.DependencyProvider.GetRequiredService<IHostSettingsService>();
             this.applicationStatusInfo = this.DependencyProvider.GetRequiredService<IApplicationStatusInfo>();
-            this.portalSettings = this.DependencyProvider.GetRequiredService<IPortalSettings>();
+            this.portalSettings = PortalController.Instance.GetCurrentSettings();
         }
 
         /// <inheritdoc/>
