@@ -172,8 +172,9 @@ class Build : NukeBuild
         .Executes(() =>
         {
             var configuration = IsLocalBuild ? "Debug" : "Release";
-            Logger.Normal(IsLocalBuild);
-            Logger.Normal("Configuration: ", configuration);
+            Logger.Normal("IsLocalBuild: {0}", IsLocalBuild);
+            Logger.Normal("Configuration: {0}", Configuration);
+            Logger.Normal("configuration: {0}", configuration);
             EnsureCleanDirectory(StagingDirectory);
             Compress(RootDirectory, StagingDirectory / "Resources.zip", f =>
                 f.Extension == ".ascx" ||
@@ -187,10 +188,10 @@ class Build : NukeBuild
             Logger.Normal("Symbol Files: ", symbolFiles);
             Helpers.AddFilesToZip(StagingDirectory / "Symbols.zip", symbolFiles);
 
-            Logger.Normal("Install Files: ", InstallFiles);
+            Logger.Normal(InstallFiles);
             InstallFiles.ForEach(i => CopyFileToDirectory(i, StagingDirectory));
 
-            Logger.Normal("Binaries: ", BinaryFiles);
+            Logger.Normal(BinaryFiles);
             BinaryFiles.ForEach(b => CopyFileToDirectory(b, StagingDirectory / "bin"));
             var versionString = ModuleBranch == "main" ? GitVersion.MajorMinorPatch : GitVersion.SemVer;
             ZipFile.CreateFromDirectory(StagingDirectory, ArtifactsDirectory / $"{ModuleName}_{versionString}_install.zip");
