@@ -6,6 +6,7 @@ using System.Linq;
 using System.Xml;
 using BuildHelpers;
 using Nuke.Common;
+using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.Execution;
 using Nuke.Common.Git;
 using Nuke.Common.IO;
@@ -23,7 +24,16 @@ using static Nuke.Common.IO.PathConstruction;
 using static Nuke.Common.Tools.DotNet.DotNetTasks;
 using static Nuke.Common.Tools.Git.GitTasks;
 using static Nuke.Common.Tools.MSBuild.MSBuildTasks;
+using Nuke.Common.CI;
+using System.ComponentModel.Design.Serialization;
 
+[GitHubActions(
+    name: "Build",
+    image: GitHubActionsImage.WindowsLatest,
+    ImportGitHubTokenAs = "githubtoken",
+    InvokedTargets = new[] { "CI" },
+    OnPullRequestBranches = new[] { "develop", "release/**" },
+    OnPushBranches = new[] { "main", "release/**" })]
 [CheckBuildProjectConfigurations]
 class Build : NukeBuild
 {
@@ -47,29 +57,28 @@ class Build : NukeBuild
 
 
     readonly string ModuleName = "Dnn.Modules.ModuleCreator";
-    readonly IReadOnlyCollection<string> SymbolFiles;
-    readonly IReadOnlyCollection<string> InstallFiles;
-    readonly IReadOnlyCollection<string> BinaryFiles;
-    readonly bool IsInDesktopModules;
-    readonly AbsolutePath ArtifactsDirectory;
-    readonly AbsolutePath StagingDirectory;
-    readonly AbsolutePath DeployDirectory;
-    readonly AbsolutePath DnnModuleInstallDirectory;
+    IReadOnlyCollection<string> InstallFiles;
+    bool IsInDesktopModules;
+    readonly AbsolutePath ArtifactsDirectory = RootDirectory / "Artifacts";
+    readonly AbsolutePath StagingDirectory = RootDirectory / "Artifacts" / "Staging";
+    readonly AbsolutePath DeployDirectory = RootDirectory.Parent / "Admin" / "ModuleCreator";
+    readonly AbsolutePath DnnModuleInstallDirectory = RootDirectory.Parent.Parent / "Install" / "Module";
     string ModuleBranch;
 
-    public Build()
-    {
-        SymbolFiles = GlobFiles(RootDirectory / "bin" / "Release", $"{ModuleName}.pdb");
-        InstallFiles = GlobFiles(RootDirectory, "*.txt", "*.dnn");
-        ArtifactsDirectory = RootDirectory / "Artifacts";
-        StagingDirectory = ArtifactsDirectory / "Staging";
-        BinaryFiles = GlobFiles(RootDirectory / "bin" / Configuration, $"{ModuleName}.dll");
-        IsInDesktopModules = RootDirectory.Parent.ToString().EndsWith("DesktopModules");
-        DeployDirectory = IsInDesktopModules ? RootDirectory.Parent / "Admin" / "ModuleCreator" : null;
-        DnnModuleInstallDirectory = RootDirectory.Parent.Parent / "Install" / "Module";
-    }
+    Target SetupVariables => _ => _
+        .Before(Package)
+        .Executes(() =>
+        {
+            using (var block = Logger.Block("Info"))
+            {
+                Logger.Normal(Configuration);
+            }
+            InstallFiles = GlobFiles(RootDirectory, "*.txt", "*.dnn");
+            IsInDesktopModules = RootDirectory.Parent.ToString().EndsWith("DesktopModules");
+        });
 
     Target Clean => _ => _
+        .DependsOn(SetupVariables)
         .Before(Restore)
         .Before(Package)
         .Executes(() =>
@@ -78,6 +87,7 @@ class Build : NukeBuild
         });
 
     Target Restore => _ => _
+        .DependsOn(SetupVariables)
         .Executes(() =>
         {
             var project = Solution.GetProject(ModuleName);
@@ -86,6 +96,7 @@ class Build : NukeBuild
         });
 
     Target SetManifestVersions => _ => _
+        .DependsOn(SetupVariables)
         .Executes(() =>
         {
             var manifests = GlobFiles(RootDirectory, "**/*.dnn");
@@ -113,6 +124,7 @@ class Build : NukeBuild
     Target TagRelease => _ => _
         .OnlyWhenDynamic(() => ModuleBranch == "main" || ModuleBranch.StartsWith("release"))
         .OnlyWhenDynamic(() => !string.IsNullOrEmpty(GithubToken))
+        .DependsOn(SetupVariables)
         .DependsOn(SetBranch)
         .Executes(() =>
         {
@@ -138,6 +150,7 @@ class Build : NukeBuild
         });
 
     Target SetBranch => _ => _
+        .DependsOn(SetupVariables)
         .Executes(() =>
         {
             ModuleBranch = GitRepository.Branch.StartsWith("refs/") ? GitRepository.Branch.Substring(11) : GitRepository.Branch;
@@ -153,8 +166,13 @@ class Build : NukeBuild
         .DependsOn(Compile)
         .DependsOn(SetBranch)
         .DependsOn(TagRelease)
+        .Produces(ArtifactsDirectory / "*.zip")
         .Executes(() =>
         {
+            var configuration = IsLocalBuild ? "Debug" : "Release";
+            Logger.Normal("IsLocalBuild: {0}", IsLocalBuild);
+            Logger.Normal("Configuration: {0}", Configuration);
+            Logger.Normal("configuration: {0}", configuration);
             EnsureCleanDirectory(StagingDirectory);
             Compress(RootDirectory, StagingDirectory / "Resources.zip", f =>
                 f.Extension == ".ascx" ||
@@ -163,9 +181,17 @@ class Build : NukeBuild
                 f.Extension == ".png" ||
                 f.Extension == ".css" ||
                 f.Directory.ToString().Contains("Templates"));
-            Helpers.AddFilesToZip(StagingDirectory / "Symbols.zip", SymbolFiles);
+
+            var symbolFiles = GlobFiles(RootDirectory / "bin" / configuration, $"{ModuleName}.pdb");
+            Logger.Normal("Symbol Files: " + Helpers.Dump(symbolFiles));
+            Helpers.AddFilesToZip(StagingDirectory / "Symbols.zip", symbolFiles);
+
+            Logger.Normal(InstallFiles);
             InstallFiles.ForEach(i => CopyFileToDirectory(i, StagingDirectory));
-            BinaryFiles.ForEach(b => CopyFileToDirectory(b, StagingDirectory / "bin"));
+
+            var binaryFiles = GlobFiles(RootDirectory / "bin" / configuration, $"{ModuleName}.dll");
+            Logger.Normal("Binary Files: " + Helpers.Dump(binaryFiles));
+            binaryFiles.ForEach(b => CopyFileToDirectory(b, StagingDirectory / "bin"));
             var versionString = ModuleBranch == "main" ? GitVersion.MajorMinorPatch : GitVersion.SemVer;
             ZipFile.CreateFromDirectory(StagingDirectory, ArtifactsDirectory / $"{ModuleName}_{versionString}_install.zip");
             DeleteDirectory(StagingDirectory);
@@ -221,5 +247,13 @@ class Build : NukeBuild
                 filePolicy: FileExistsPolicy.OverwriteIfNewer,
                 excludeDirectory: d => excludedFolders.Contains(d.Name),
                 excludeFile: f => excludedExtensions.Contains(f.Extension));
+        });
+
+    Target CI => _ => _
+        .DependsOn(Package)
+        .DependsOn(TagRelease)
+        .Executes(() =>
+        {
+
         });
 }
