@@ -56,7 +56,6 @@ class Build : NukeBuild
 
 
     readonly string ModuleName = "Dnn.Modules.ModuleCreator";
-    readonly IReadOnlyCollection<string> SymbolFiles;
     readonly IReadOnlyCollection<string> InstallFiles;
     readonly IReadOnlyCollection<string> BinaryFiles;
     readonly bool IsInDesktopModules;
@@ -72,11 +71,10 @@ class Build : NukeBuild
         {
             Logger.Normal(Configuration);
         }
-        SymbolFiles = GlobFiles(RootDirectory / "bin" / Configuration, $"{ModuleName}.pdb");
         InstallFiles = GlobFiles(RootDirectory, "*.txt", "*.dnn");
         ArtifactsDirectory = RootDirectory / "Artifacts";
         StagingDirectory = ArtifactsDirectory / "Staging";
-        BinaryFiles = GlobFiles(RootDirectory / "bin" / Configuration, $"{ModuleName}.dll");
+        BinaryFiles = GlobFiles(RootDirectory / "bin" / Configuration.ToString(), $"{ModuleName}.dll");
         IsInDesktopModules = RootDirectory.Parent.ToString().EndsWith("DesktopModules");
         DeployDirectory = IsInDesktopModules ? RootDirectory.Parent / "Admin" / "ModuleCreator" : null;
         DnnModuleInstallDirectory = RootDirectory.Parent.Parent / "Install" / "Module";
@@ -169,6 +167,7 @@ class Build : NukeBuild
         .Produces(ArtifactsDirectory / "*.zip")
         .Executes(() =>
         {
+            Logger.Normal("Configuration: ", Configuration);
             EnsureCleanDirectory(StagingDirectory);
             Compress(RootDirectory, StagingDirectory / "Resources.zip", f =>
                 f.Extension == ".ascx" ||
@@ -177,8 +176,15 @@ class Build : NukeBuild
                 f.Extension == ".png" ||
                 f.Extension == ".css" ||
                 f.Directory.ToString().Contains("Templates"));
-            Helpers.AddFilesToZip(StagingDirectory / "Symbols.zip", SymbolFiles);
+
+            var symbolFiles = GlobFiles(RootDirectory / "bin" / Configuration, $"{ModuleName}.pdb");
+            Logger.Normal("Symbol Files: ", symbolFiles);
+            Helpers.AddFilesToZip(StagingDirectory / "Symbols.zip", symbolFiles);
+
+            Logger.Normal("Install Files: ", InstallFiles);
             InstallFiles.ForEach(i => CopyFileToDirectory(i, StagingDirectory));
+
+            Logger.Normal("Binaries: ", BinaryFiles);
             BinaryFiles.ForEach(b => CopyFileToDirectory(b, StagingDirectory / "bin"));
             var versionString = ModuleBranch == "main" ? GitVersion.MajorMinorPatch : GitVersion.SemVer;
             ZipFile.CreateFromDirectory(StagingDirectory, ArtifactsDirectory / $"{ModuleName}_{versionString}_install.zip");
