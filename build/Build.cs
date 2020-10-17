@@ -58,7 +58,6 @@ class Build : NukeBuild
 
     readonly string ModuleName = "Dnn.Modules.ModuleCreator";
     IReadOnlyCollection<string> InstallFiles;
-    IReadOnlyCollection<string> BinaryFiles;
     bool IsInDesktopModules;
     readonly AbsolutePath ArtifactsDirectory = RootDirectory / "Artifacts";
     readonly AbsolutePath StagingDirectory = RootDirectory / "Artifacts" / "Staging";
@@ -75,7 +74,6 @@ class Build : NukeBuild
                 Logger.Normal(Configuration);
             }
             InstallFiles = GlobFiles(RootDirectory, "*.txt", "*.dnn");
-            BinaryFiles = GlobFiles(RootDirectory / "bin" / Configuration.ToString(), $"{ModuleName}.dll");
             IsInDesktopModules = RootDirectory.Parent.ToString().EndsWith("DesktopModules");
         });
 
@@ -191,8 +189,9 @@ class Build : NukeBuild
             Logger.Normal(InstallFiles);
             InstallFiles.ForEach(i => CopyFileToDirectory(i, StagingDirectory));
 
-            Logger.Normal("Binary Files: " + Helpers.Dump(BinaryFiles));
-            BinaryFiles.ForEach(b => CopyFileToDirectory(b, StagingDirectory / "bin"));
+            var binaryFiles = GlobFiles(RootDirectory / "bin" / configuration, $"{ModuleName}.dll");
+            Logger.Normal("Binary Files: " + Helpers.Dump(binaryFiles));
+            binaryFiles.ForEach(b => CopyFileToDirectory(b, StagingDirectory / "bin"));
             var versionString = ModuleBranch == "main" ? GitVersion.MajorMinorPatch : GitVersion.SemVer;
             ZipFile.CreateFromDirectory(StagingDirectory, ArtifactsDirectory / $"{ModuleName}_{versionString}_install.zip");
             DeleteDirectory(StagingDirectory);
