@@ -167,7 +167,7 @@ class Build : NukeBuild
         .Produces(ArtifactsDirectory / "*.zip")
         .Executes(() =>
         {
-            Logger.Normal("Configuration: ", Configuration);
+            Logger.Normal("Configuration: ", Configuration.ToString());
             EnsureCleanDirectory(StagingDirectory);
             Compress(RootDirectory, StagingDirectory / "Resources.zip", f =>
                 f.Extension == ".ascx" ||
@@ -177,7 +177,7 @@ class Build : NukeBuild
                 f.Extension == ".css" ||
                 f.Directory.ToString().Contains("Templates"));
 
-            var symbolFiles = GlobFiles(RootDirectory / "bin" / Configuration, $"{ModuleName}.pdb");
+            var symbolFiles = GlobFiles(RootDirectory / "bin" / Configuration.ToString(), $"{ModuleName}.pdb");
             Logger.Normal("Symbol Files: ", symbolFiles);
             Helpers.AddFilesToZip(StagingDirectory / "Symbols.zip", symbolFiles);
 
