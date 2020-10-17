@@ -68,7 +68,11 @@ class Build : NukeBuild
 
     public Build()
     {
-        SymbolFiles = GlobFiles(RootDirectory / "bin" / "Release", $"{ModuleName}.pdb");
+        using (var block = Logger.Block("Info"))
+        {
+            Logger.Normal(Configuration);
+        }
+        SymbolFiles = GlobFiles(RootDirectory / "bin" / Configuration, $"{ModuleName}.pdb");
         InstallFiles = GlobFiles(RootDirectory, "*.txt", "*.dnn");
         ArtifactsDirectory = RootDirectory / "Artifacts";
         StagingDirectory = ArtifactsDirectory / "Staging";
