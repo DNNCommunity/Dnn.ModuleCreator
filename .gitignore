@@ -7,3 +7,6 @@
 /obj
 /packages
 /**/*csproj.user
+/.tmp
+/Artifacts
+/build

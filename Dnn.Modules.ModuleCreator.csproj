@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -8,73 +8,41 @@
     </ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{BD519B8A-169C-4328-BF67-62CD278435BC}</ProjectGuid>
-    <ProjectTypeGuids>{349c5851-65df-11da-9384-00065b846f21};{fae04ec0-301f-11d3-bf4b-00c04f79efbc}</ProjectTypeGuids>
     <OutputType>Library</OutputType>
+    <RuntimeIdentifier>win</RuntimeIdentifier>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Dnn.Modules.ModuleCreator</RootNamespace>
     <AssemblyName>Dnn.Modules.ModuleCreator</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <UseIISExpress>true</UseIISExpress>
+    <Use64BitIISExpress />
     <IISExpressSSLPort />
     <IISExpressAnonymousAuthentication />
     <IISExpressWindowsAuthentication />
     <IISExpressUseClassicPipelineMode />
-    <Use64BitIISExpress />
     <UseGlobalApplicationHostFile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\</OutputPath>
+    <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>bin\Dnn.Modules.ModuleCreator.XML</DocumentationFile>
-    <LangVersion>7</LangVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>bin\</OutputPath>
+    <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>bin\Dnn.Modules.ModuleCreator.XML</DocumentationFile>
-    <LangVersion>7</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="DotNetNuke, Version=9.7.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\DotNetNuke.Core.9.7.1\lib\net45\DotNetNuke.dll</HintPath>
-    </Reference>
-    <Reference Include="DotNetNuke.Abstractions, Version=9.7.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\DotNetNuke.Abstractions.9.7.1\lib\netstandard2.0\DotNetNuke.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="DotNetNuke.DependencyInjection, Version=9.7.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\DotNetNuke.DependencyInjection.9.7.1\lib\netstandard2.0\DotNetNuke.DependencyInjection.dll</HintPath>
-    </Reference>
-    <Reference Include="DotNetNuke.Instrumentation, Version=9.7.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\DotNetNuke.Instrumentation.9.7.1\lib\net45\DotNetNuke.Instrumentation.dll</HintPath>
-    </Reference>
-    <Reference Include="DotNetNuke.log4net, Version=3.0.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\DotNetNuke.Instrumentation.9.7.1\lib\net45\DotNetNuke.log4net.dll</HintPath>
-    </Reference>
-    <Reference Include="DotNetNuke.Web, Version=9.7.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\DotNetNuke.Web.9.7.1\lib\net45\DotNetNuke.Web.dll</HintPath>
-    </Reference>
-    <Reference Include="DotNetNuke.WebUtility, Version=4.2.1.783, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\DotNetNuke.Web.9.7.1\lib\net45\DotNetNuke.WebUtility.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.ApplicationBlocks.Data, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\DotNetNuke.Core.9.7.1\lib\net45\Microsoft.ApplicationBlocks.Data.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.DependencyInjection, Version=2.1.1.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>packages\Microsoft.Extensions.DependencyInjection.2.1.1\lib\net461\Microsoft.Extensions.DependencyInjection.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions, Version=2.1.1.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
-      <HintPath>packages\Microsoft.Extensions.DependencyInjection.Abstractions.2.1.1\lib\netstandard2.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
-    </Reference>
     <Reference Include="System.Web.DynamicData" />
     <Reference Include="System.Web.Entity" />
     <Reference Include="System.Web.ApplicationServices" />
@@ -102,6 +70,7 @@
     <Compile Include="CreateModule.ascx.designer.cs">
       <DependentUpon>CreateModule.ascx</DependentUpon>
     </Compile>
+    <Content Include=".gitignore" />
     <Content Include="Templates\C#\Class File\template.cs" />
     <Content Include="Templates\C#\DAL2\templateController.cs" />
     <Content Include="Templates\C#\DAL2\templateInfo.cs" />
@@ -213,36 +182,28 @@
     <Content Include="web.config" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
     <AdditionalFiles Include="stylecop.json" />
   </ItemGroup>
   <ItemGroup>
-    <Analyzer Include="packages\StyleCop.Analyzers.1.1.118\analyzers\dotnet\cs\StyleCop.Analyzers.CodeFixes.dll" />
-    <Analyzer Include="packages\StyleCop.Analyzers.1.1.118\analyzers\dotnet\cs\StyleCop.Analyzers.dll" />
+    <PackageReference Include="DotNetNuke.Abstractions">
+      <Version>9.7.1</Version>
+    </PackageReference>
+    <PackageReference Include="DotNetNuke.Instrumentation">
+      <Version>9.7.1</Version>
+    </PackageReference>
+    <PackageReference Include="DotNetNuke.Web">
+      <Version>9.7.1</Version>
+    </PackageReference>
+    <PackageReference Include="StyleCop.Analyzers">
+      <Version>1.1.118</Version>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
     <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
   </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
-  <Import Project="$(VSToolsPath)\WebApplications\Microsoft.WebApplication.targets" Condition="'$(VSToolsPath)' != ''" />
-  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v10.0\WebApplications\Microsoft.WebApplication.targets" Condition="false" />
-  <ProjectExtensions>
-    <VisualStudio>
-      <FlavorProperties GUID="{349c5851-65df-11da-9384-00065b846f21}">
-        <WebProjectProperties>
-          <UseIIS>True</UseIIS>
-          <AutoAssignPort>True</AutoAssignPort>
-          <DevelopmentServerPort>56695</DevelopmentServerPort>
-          <DevelopmentServerVPath>/</DevelopmentServerVPath>
-          <IISUrl>http://localhost:56695/</IISUrl>
-          <NTLMAuthentication>False</NTLMAuthentication>
-          <UseCustomServer>False</UseCustomServer>
-          <CustomServerUrl>
-          </CustomServerUrl>
-          <SaveServerSettingsInUserFile>False</SaveServerSettingsInUserFile>
-        </WebProjectProperties>
-      </FlavorProperties>
-    </VisualStudio>
-  </ProjectExtensions>
+  <ProjectExtensions />
 </Project>
