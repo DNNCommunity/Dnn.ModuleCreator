@@ -6,6 +6,7 @@ using System.Linq;
 using System.Xml;
 using BuildHelpers;
 using Nuke.Common;
+using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.Execution;
 using Nuke.Common.Git;
 using Nuke.Common.IO;
@@ -23,7 +24,15 @@ using static Nuke.Common.IO.PathConstruction;
 using static Nuke.Common.Tools.DotNet.DotNetTasks;
 using static Nuke.Common.Tools.Git.GitTasks;
 using static Nuke.Common.Tools.MSBuild.MSBuildTasks;
+using Nuke.Common.CI;
 
+[GitHubActions(
+    name: "Build",
+    image: GitHubActionsImage.WindowsLatest,
+    ImportGitHubTokenAs = "githubtoken",
+    InvokedTargets = new[] { "CI" },
+    OnPullRequestBranches = new[] { "develop", "release/**" },
+    OnPushBranches = new[] { "main", "release/**" })]
 [CheckBuildProjectConfigurations]
 class Build : NukeBuild
 {
@@ -153,6 +162,7 @@ class Build : NukeBuild
         .DependsOn(Compile)
         .DependsOn(SetBranch)
         .DependsOn(TagRelease)
+        .Produces(ArtifactsDirectory / "*.zip")
         .Executes(() =>
         {
             EnsureCleanDirectory(StagingDirectory);
@@ -221,5 +231,13 @@ class Build : NukeBuild
                 filePolicy: FileExistsPolicy.OverwriteIfNewer,
                 excludeDirectory: d => excludedFolders.Contains(d.Name),
                 excludeFile: f => excludedExtensions.Contains(f.Extension));
+        });
+
+    Target CI => _ => _
+        .DependsOn(Package)
+        .DependsOn(TagRelease)
+        .Executes(() =>
+        {
+
         });
 }
