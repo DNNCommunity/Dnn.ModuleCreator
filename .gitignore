@@ -9,4 +9,5 @@
 /**/*csproj.user
 /.tmp
 /Artifacts
-/build
+/build/bin
+/build/obj
