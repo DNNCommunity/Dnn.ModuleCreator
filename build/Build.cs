@@ -26,6 +26,9 @@ using static Nuke.Common.Tools.Git.GitTasks;
 using static Nuke.Common.Tools.MSBuild.MSBuildTasks;
 using Nuke.Common.CI;
 using System.ComponentModel.Design.Serialization;
+using System.Text;
+using Octokit;
+using System.IO;
 
 [GitHubActions(
     name: "Build",
@@ -64,6 +67,11 @@ class Build : NukeBuild
     readonly AbsolutePath DeployDirectory = RootDirectory.Parent / "Admin" / "ModuleCreator";
     readonly AbsolutePath DnnModuleInstallDirectory = RootDirectory.Parent.Parent / "Install" / "Module";
     string ModuleBranch;
+    GitHubClient gitHubClient;
+    string releaseNotes = "";
+    string owner = "";
+    string name = "";
+    Release release;
 
     Target SetupVariables => _ => _
         .Before(Package)
@@ -155,6 +163,115 @@ class Build : NukeBuild
         {
             ModuleBranch = GitRepository.Branch.StartsWith("refs/") ? GitRepository.Branch.Substring(11) : GitRepository.Branch;
             Logger.Info($"Set branch name to {ModuleBranch}");
+        });
+
+    Target SetupGitHubClient => _ => _
+        .OnlyWhenDynamic(() => !string.IsNullOrWhiteSpace(GithubToken))
+        .DependsOn(SetBranch)
+        .Executes(() => {
+            Logger.Info($"We are on branch {ModuleBranch}");
+            if (ModuleBranch == "main" || ModuleBranch.StartsWith("release"))
+            {
+                owner = GitRepository.Identifier.Split('/')[0];
+                name = GitRepository.Identifier.Split('/')[1];
+                gitHubClient = new GitHubClient(new ProductHeaderValue("Nuke"));
+                var tokenAuth = new Credentials(GithubToken);
+                gitHubClient.Credentials = tokenAuth;
+            }
+        });
+
+    Target Release => _ => _
+        .OnlyWhenDynamic(() => ModuleBranch == "main" || ModuleBranch.StartsWith("release"))
+        .OnlyWhenDynamic(() => !string.IsNullOrWhiteSpace(GithubToken))
+        .DependsOn(SetBranch)
+        .DependsOn(SetupGitHubClient)
+        .DependsOn(GenerateReleaseNotes)
+        .DependsOn(TagRelease)
+        .DependsOn(Package)
+        .Executes(() => {
+            var newRelease = new NewRelease(ModuleBranch == "main" ? $"v{GitVersion.MajorMinorPatch}" : $"v{GitVersion.SemVer}")
+            {
+                Body = releaseNotes,
+                Draft = true,
+                Name = ModuleBranch == "main" ? $"v{GitVersion.MajorMinorPatch}" : $"v{GitVersion.SemVer}",
+                TargetCommitish = GitVersion.Sha,
+                Prerelease = ModuleBranch.StartsWith("release")
+            };
+            release = gitHubClient.Repository.Release.Create(owner, name, newRelease).Result;
+            Logger.Info($"{release.Name} released !");
+
+            var artifactFile = GlobFiles(ArtifactsDirectory, "**/*.zip").FirstOrDefault();
+            var artifact = File.OpenRead(artifactFile);
+            var artifactInfo = new FileInfo(artifactFile);
+            var assetUpload = new ReleaseAssetUpload()
+            {
+                FileName = artifactInfo.Name,
+                ContentType = "application/zip",
+                RawData = artifact
+            };
+            var asset = gitHubClient.Repository.Release.UploadAsset(release, assetUpload).Result;
+            Logger.Info($"Asset {asset.Name} published at {asset.BrowserDownloadUrl}");
+        });
+
+    Target LogInfo => _ => _
+        .Before(Release)
+        .DependsOn(TagRelease)
+        .DependsOn(SetBranch)
+        .Executes(() =>
+        {
+            Logger.Info($"Original branch name is {GitRepository.Branch}");
+            Logger.Info($"We are on branch {ModuleBranch} and IsOnMasterBranch is {GitRepository.IsOnMasterBranch()} and the version will be {GitVersion.SemVer}");
+            using (var group = Logger.Block("GitVersion"))
+            {
+                Logger.Info(SerializationTasks.JsonSerialize(GitVersion));
+            }
+        });
+
+    Target GenerateReleaseNotes => _ => _
+        .OnlyWhenDynamic(() => ModuleBranch == "main" || ModuleBranch.StartsWith("release"))
+        .OnlyWhenDynamic(() => !string.IsNullOrWhiteSpace(GithubToken))
+        .DependsOn(SetupGitHubClient)
+        .DependsOn(TagRelease)
+        .DependsOn(SetBranch)
+        .Executes(() => {
+            // Get the milestone
+            var milestone = gitHubClient.Issue.Milestone.GetAllForRepository(owner, name).Result.Where(m => m.Title == GitVersion.MajorMinorPatch).FirstOrDefault();
+            if (milestone == null)
+            {
+                Logger.Warn("Milestone not found for this version");
+                releaseNotes = "No release notes for this version.";
+                return;
+            }
+
+            // Get the PRs
+            var prRequest = new PullRequestRequest()
+            {
+                State = ItemStateFilter.All
+            };
+            var pullRequests = gitHubClient.Repository.PullRequest.GetAllForRepository(owner, name, prRequest).Result.Where(p =>
+                p.Milestone?.Title == milestone.Title &&
+                p.Merged == true &&
+                p.Milestone?.Title == GitVersion.MajorMinorPatch);
+
+            // Build release notes
+            var releaseNotesBuilder = new StringBuilder();
+            releaseNotesBuilder.AppendLine($"# {name} {milestone.Title}")
+                .AppendLine("")
+                .AppendLine($"A total of {pullRequests.Count()} pull requests where merged in this release.").AppendLine();
+
+            foreach (var group in pullRequests.GroupBy(p => p.Labels[0]?.Name, (label, prs) => new { label, prs }))
+            {
+                releaseNotesBuilder.AppendLine($"## {group.label}");
+                foreach (var pr in group.prs)
+                {
+                    releaseNotesBuilder.AppendLine($"- #{pr.Number} {pr.Title}. Thanks @{pr.User.Login}");
+                }
+            }
+            releaseNotes = releaseNotesBuilder.ToString();
+            using (Logger.Block("Release Notes"))
+            {
+                Logger.Info(releaseNotes);
+            }
         });
 
     /// <summary>
@@ -250,8 +367,11 @@ class Build : NukeBuild
         });
 
     Target CI => _ => _
+        .DependsOn(LogInfo)
         .DependsOn(Package)
+        .DependsOn(GenerateReleaseNotes)
         .DependsOn(TagRelease)
+        .DependsOn(Release)
         .Executes(() =>
         {
 
