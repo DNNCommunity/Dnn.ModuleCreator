@@ -184,14 +184,14 @@ class Build : NukeBuild
                 f.Extension == ".css" ||
                 f.Directory.ToString().Contains("Templates"));
 
-            var symbolFiles = GlobFiles(RootDirectory / "bin" / configuration.ToString(), $"{ModuleName}.pdb");
-            Logger.Normal("Symbol Files: ", symbolFiles);
+            var symbolFiles = GlobFiles(RootDirectory / "bin" / configuration, $"{ModuleName}.pdb");
+            Logger.Normal("Symbol Files: " + Helpers.Dump(symbolFiles));
             Helpers.AddFilesToZip(StagingDirectory / "Symbols.zip", symbolFiles);
 
             Logger.Normal(InstallFiles);
             InstallFiles.ForEach(i => CopyFileToDirectory(i, StagingDirectory));
 
-            Logger.Normal(BinaryFiles);
+            Logger.Normal("Binary Files: " + Helpers.Dump(BinaryFiles));
             BinaryFiles.ForEach(b => CopyFileToDirectory(b, StagingDirectory / "bin"));
             var versionString = ModuleBranch == "main" ? GitVersion.MajorMinorPatch : GitVersion.SemVer;
             ZipFile.CreateFromDirectory(StagingDirectory, ArtifactsDirectory / $"{ModuleName}_{versionString}_install.zip");
