@@ -13,7 +13,7 @@ This module was extracted from https://github.com/DnnSoftware/Dnn.Platform
 3. Open the solution in Visual Studio.
 4. The first you will need to create a Dnn package to properly register the module in dnn by selecting the `Package` mode and clicking the debug button. This will fire up a package build in the command line for you.
 
-    ![Package mode](.github/images/Sreenshot1.png)
+    ![Package mode](.github/images/Screenshot1.png)
 5. In Dnn, go to `Extensions => Available Extensions => Modules` and install the Module Creator module
 6. Make sure to create a branch to contain your changes before you start working.
 7. As you develop the module you can then switch the build mode to `Deploy` to have your changes applied in place on the working website.
