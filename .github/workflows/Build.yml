@@ -1,14 +1,16 @@
-name: Build
+﻿name: Build
 
 on:
   push:
     branches:
-      - main
-      - release/**
+      - master
+      - develop
+      - 'release/**'
   pull_request:
     branches:
+      - master
       - develop
-      - release/**
+      - 'release/**'
 
 jobs:
   build:
@@ -20,14 +22,11 @@ jobs:
 
       - name: Fetch unshallow
         run: git fetch --prune --tags --unshallow
-
       - name: Run './build.ps1'
-        run: ./build.ps1 --github-toekn $GITHUB_TOKEN --target CI
-        env:
-            GITHUB_TOKEN: ${{ github.toekn }}
-      
-      - name: Upload Build Artifacts
+        run: ./build.ps1 --github-token $GITHUB_TOKEN --target CI
+        env:	
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Upload Build Artifact
         uses: actions/upload-artifact@v2
-          with:
-            name: Artifacts
-            path: Artifacts
+        with:
+          path: artifacts/*
