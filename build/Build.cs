@@ -52,7 +52,7 @@ class Build : NukeBuild
     readonly Configuration Configuration = IsLocalBuild ? Configuration.Debug : Configuration.Release;
 
     [Parameter("Github Token")]
-    readonly string GithubToken;
+    readonly string GithubToken = Environment.GetEnvironmentVariable("github-token");
 
     [Solution] readonly Solution Solution;
     [GitRepository] readonly GitRepository GitRepository;
@@ -77,12 +77,10 @@ class Build : NukeBuild
         .Before(Package)
         .Executes(() =>
         {
-            using (var block = Logger.Block("Info"))
-            {
-                Logger.Normal(Configuration);
-            }
             InstallFiles = GlobFiles(RootDirectory, "*.txt", "*.dnn");
+            Logger.Normal($"Found install files: {Helpers.Dump(InstallFiles)}");
             IsInDesktopModules = RootDirectory.Parent.ToString().EndsWith("DesktopModules");
+            Logger.Normal(IsInDesktopModules ? "We are" : "We are not" + " in a DesktopModules folder.");
         });
 
     Target Clean => _ => _
@@ -92,6 +90,7 @@ class Build : NukeBuild
         .Executes(() =>
         {
             EnsureCleanDirectory(ArtifactsDirectory);
+            Logger.Normal($"Cleaned {ArtifactsDirectory}");
         });
 
     Target Restore => _ => _
@@ -173,6 +172,8 @@ class Build : NukeBuild
             Logger.Info($"We are on branch {ModuleBranch}");
             if (ModuleBranch == "main" || ModuleBranch.StartsWith("release"))
             {
+                Logger.Normal("GithubToken is " + (string.IsNullOrWhiteSpace(GithubToken) ? "empty" : "present"));
+                Logger.Normal($"GitRepository is: {Helpers.Dump(GitRepository)}");
                 owner = GitRepository.Identifier.Split('/')[0];
                 name = GitRepository.Identifier.Split('/')[1];
                 gitHubClient = new GitHubClient(new ProductHeaderValue("Nuke"));
@@ -198,6 +199,7 @@ class Build : NukeBuild
                 TargetCommitish = GitVersion.Sha,
                 Prerelease = ModuleBranch.StartsWith("release")
             };
+            Logger.Normal($"newRelease is : {Helpers.Dump(newRelease)}");
             release = gitHubClient.Repository.Release.Create(owner, name, newRelease).Result;
             Logger.Info($"{release.Name} released !");
 
