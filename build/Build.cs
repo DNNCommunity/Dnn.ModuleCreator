@@ -30,13 +30,6 @@ using System.Text;
 using Octokit;
 using System.IO;
 
-[GitHubActions(
-    name: "Build",
-    image: GitHubActionsImage.WindowsLatest,
-    ImportGitHubTokenAs = "github-token",
-    InvokedTargets = new[] { "CI" },
-    OnPullRequestBranches = new[] { "develop", "release/**" },
-    OnPushBranches = new[] { "main", "release/**" })]
 [CheckBuildProjectConfigurations]
 class Build : NukeBuild
 {
