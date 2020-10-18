@@ -133,6 +133,7 @@ class Build : NukeBuild
         .OnlyWhenDynamic(() => ModuleBranch == "main" || ModuleBranch.StartsWith("release"))
         .OnlyWhenDynamic(() => !string.IsNullOrEmpty(GithubToken))
         .DependsOn(SetupVariables)
+        .DependsOn(SetupGitHubClient)
         .DependsOn(SetBranch)
         .Executes(() =>
         {
